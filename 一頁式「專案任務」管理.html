@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>一頁式「專案任務」管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --text: #37352F;
+    --muted: #787774;
+    --faint: #A6A49F;
+    --line: #EDEBE8;
+    --panel: #F4EFEE;
+    --panel-line: #E2D8D5;
+    --card: #FFFFFF;
+    --card-cover: #F8F7F6;
+    --hover: rgba(55, 53, 47, 0.06);
+    --check: #2383E2;
+    --blue: #3E6DB0;   --blue-bg: #DFEAF6;
+    --grey: #8E8C88;   --grey-bg: #ECEBE9;
+    --green: #4B8762;  --green-bg: #E1EFE5;  --bar: #6FA383;
+    --red: #B9483F;    --red-bg: #F7E2DF;
+    --amber: #97691E;  --amber-bg: #F5E9D5;
+    --slate: #4C6A80;  --slate-bg: #E3ECF2;
+    --shadow: 0 1px 3px rgba(55, 53, 47, 0.07), 0 0 0 1px rgba(55, 53, 47, 0.03);
+    --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #191919; --text: #E7E4DF; --muted: #A3A09B; --faint: #75726E;
+      --line: #2F2E2C; --panel: #26211F; --panel-line: #3D3431;
+      --card: #202020; --card-cover: #262524; --hover: rgba(255,255,255,0.06);
+      --check: #4A9BEA;
+      --blue: #8DB2E8; --blue-bg: #213349;
+      --grey: #A3A09B; --grey-bg: #33312F;
+      --green: #8CC5A0; --green-bg: #203629; --bar: #6FA383;
+      --red: #EE9087; --red-bg: #45231F;
+      --amber: #E3B96E; --amber-bg: #41321A;
+      --slate: #9DBBD1; --slate-bg: #243441;
+      --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #191919; --text: #E7E4DF; --muted: #A3A09B; --faint: #75726E;
+    --line: #2F2E2C; --panel: #26211F; --panel-line: #3D3431;
+    --card: #202020; --card-cover: #262524; --hover: rgba(255,255,255,0.06);
+    --check: #4A9BEA;
+    --blue: #8DB2E8; --blue-bg: #213349;
+    --grey: #A3A09B; --grey-bg: #33312F;
+    --green: #8CC5A0; --green-bg: #203629; --bar: #6FA383;
+    --red: #EE9087; --red-bg: #45231F;
+    --amber: #E3B96E; --amber-bg: #41321A;
+    --slate: #9DBBD1; --slate-bg: #243441;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+    color-scheme: dark;
+  }
+  html { scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 1rem); scroll-behavior: smooth; }
+  *, *::before, *::after { box-sizing: inherit; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--check); outline-offset: 2px; border-radius: 3px; }
+  .ico { display: inline-grid; place-items: center; width: 1.05em; height: 1.05em; flex: none; }
+  .ico svg { width: 100%; height: 100%; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  /* ---------- 封面 ---------- */
+  .cover {
+    position: relative;
+    height: clamp(170px, 24vw, 300px);
+    overflow: hidden;
+    background: #7B736E;
+  }
+  .cover > svg, .cover > img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .cover-edge {
+    position: absolute; left: 0; right: 0; bottom: -1px; height: 11px;
+    background:
+      radial-gradient(circle at 50% 100%, var(--bg) 7.5px, transparent 8px) 0 0 / 16px 11px repeat-x;
+  }
+  .cover-actions {
+    position: absolute; right: 1.25rem; bottom: 1.4rem;
+    display: flex; gap: 0.4rem;
+    opacity: 0; transition: opacity .15s;
+  }
+  .cover:hover .cover-actions, .cover:focus-within .cover-actions { opacity: 1; }
+  .cover-actions button {
+    border: 0; border-radius: 4px; padding: 0.25rem 0.65rem;
+    background: rgba(255, 255, 255, 0.88); color: #37352F; font-size: 0.82rem;
+  }
+  .cover-actions button:hover { background: #fff; }
+
+  /* ---------- 頁面 ---------- */
+  .page {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 5vw, 2.5rem) 6rem;
+  }
+  h1.title {
+    margin: clamp(2.2rem, 5vw, 3.6rem) 0 0.55rem;
+    font-size: clamp(1.55rem, 3.2vw, 2.15rem);
+    font-weight: 700;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  h1.title:focus { outline: none; }
+  h1.title:empty::before { content: "未命名"; color: var(--faint); }
+
+  .navbar { background: var(--panel); border-radius: 2px; }
+  .navbar summary {
+    list-style: none; cursor: pointer;
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.2rem 0.75rem; font-size: 0.9rem; font-weight: 500;
+  }
+  .navbar summary::-webkit-details-marker { display: none; }
+  .tri { font-size: 0.6rem; transition: transform .15s; display: inline-block; }
+  details[open] > summary .tri { transform: rotate(90deg); }
+  .navbar nav { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0.35rem 0.75rem 0.7rem 1.9rem; }
+  .navbar nav a, .navbar nav button {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    color: var(--text); text-decoration: none; font-size: 0.88rem;
+    padding: 0.15rem 0.55rem; border-radius: 4px; border: 0; background: var(--bg);
+  }
+  .navbar nav a:hover, .navbar nav button:hover { background: var(--hover); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 20.5rem) minmax(0, 1fr);
+    gap: clamp(2rem, 4.5vw, 3.75rem);
+    margin-top: clamp(2rem, 5vw, 3.6rem);
+    align-items: start;
+  }
+
+  /* ---------- 左欄面板 ---------- */
+  .panel {
+    background: var(--panel);
+    padding: 1.05rem 1.6rem 1.5rem;
+    border-radius: 3px;
+    box-shadow: 0 1px 2px rgba(55, 53, 47, 0.06);
+    margin-bottom: 2.75rem;
+  }
+  .panel h2 { margin: 0 0 0.55rem; font-size: 1.3rem; font-weight: 700; }
+  .panel h2.ruled { padding-bottom: 0.6rem; border-bottom: 1px solid var(--panel-line); margin-bottom: 0.8rem; }
+
+  .hint summary {
+    list-style: none; cursor: pointer; display: flex; gap: 0.6rem; align-items: baseline;
+    color: var(--muted); font-size: 0.9rem; padding: 0.1rem 0.2rem;
+  }
+  .hint summary::-webkit-details-marker { display: none; }
+  .hint p { margin: 0.3rem 0 0.2rem 1.35rem; color: var(--muted); font-size: 0.85rem; }
+
+  .inbox-list { list-style: none; margin: 0.6rem 0 0; padding: 0; }
+  .inbox-list li {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.25rem 0.2rem; border-radius: 4px;
+  }
+  .inbox-list li:hover { background: var(--hover); }
+  .inbox-list .ico.task { color: var(--text); }
+  .link-btn {
+    border: 0; background: none; padding: 0; text-align: left;
+    min-width: 0; overflow-wrap: anywhere;
+  }
+  .link-btn:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--faint); }
+  .inbox-empty { color: var(--faint); font-size: 0.88rem; margin: 0.6rem 0 0 0.2rem; }
+
+  .quick-add {
+    display: flex; align-items: center; gap: 0.55rem;
+    margin-top: 0.7rem; padding: 0.2rem 0.2rem; color: var(--muted);
+  }
+  .quick-add input {
+    flex: 1; min-width: 0; border: 0; background: transparent;
+    border-bottom: 1px dashed var(--panel-line); padding: 0.25rem 0; font-size: 0.92rem;
+  }
+  .quick-add input::placeholder { color: var(--faint); }
+  .quick-add input:focus { outline: none; border-bottom-color: var(--muted); }
+
+  .shortcuts { display: flex; flex-direction: column; align-items: flex-start; gap: 0.45rem; }
+  .shortcut {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.28rem 0.9rem; border: 1px solid var(--panel-line); border-radius: 4px;
+    background: transparent; color: var(--muted); font-size: 0.93rem;
+  }
+  .shortcut:hover { background: var(--hover); color: var(--text); }
+  .shortcut .ico { color: var(--faint); }
+
+  .notes { list-style: none; margin: 0.4rem 0 0; padding: 0; display: grid; gap: 0.55rem; }
+  .note {
+    position: relative; background: var(--bg); border-radius: 4px;
+    padding: 0.6rem 2.2rem 0.55rem 0.8rem; box-shadow: var(--shadow);
+  }
+  .note p { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+  .note time { display: block; font-size: 0.76rem; color: var(--faint); margin-top: 0.2rem; }
+  .note .x { position: absolute; top: 0.35rem; right: 0.35rem; }
+
+  .icon-btn {
+    border: 0; background: transparent; color: var(--faint);
+    width: 1.75rem; height: 1.75rem; border-radius: 4px; display: grid; place-items: center;
+  }
+  .icon-btn:hover { background: var(--hover); color: var(--text); }
+
+  /* ---------- 右欄 ---------- */
+  .section { margin-bottom: 3.25rem; }
+  .section > h2 { margin: 0 0 0.45rem 0.1rem; font-size: 1.4rem; font-weight: 700; }
+
+  .tabs {
+    display: flex; gap: 0.15rem; border-bottom: 1px solid var(--line);
+    margin-bottom: 1.25rem; overflow-x: auto; scrollbar-width: none;
+  }
+  .tab {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.4rem 0.6rem 0.5rem; border: 0; background: none;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    color: var(--muted); font-size: 0.95rem; white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
+  .tab .count {
+    font-size: 0.75rem; min-width: 1.25rem; padding: 0 0.3rem; border-radius: 999px;
+    background: var(--red-bg); color: var(--red); text-align: center;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
+    gap: 1.1rem;
+  }
+  .card {
+    display: flex; flex-direction: column; text-align: left;
+    padding: 0; border: 0; border-radius: 6px; overflow: hidden;
+    background: var(--card); box-shadow: var(--shadow);
+    transition: box-shadow .15s;
+  }
+  .card:hover { box-shadow: 0 4px 14px rgba(55, 53, 47, 0.1), 0 0 0 1px rgba(55, 53, 47, 0.05); }
+  .card-cover {
+    display: grid; place-items: center; height: 8.6rem;
+    background: var(--card-cover); border-bottom: 1px solid var(--line);
+  }
+  .card-cover svg { width: 3.9rem; }
+  .card-body { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; padding: 0.85rem 1rem 1.1rem; }
+  .card-title { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; font-size: 1rem; }
+  .card-title .star { color: #D9A441; width: 0.8em; height: 0.8em; }
+  .card-dates { font-size: 0.84rem; }
+  .card-new {
+    align-items: center; justify-content: center; gap: 0.4rem; min-height: 14rem;
+    color: var(--faint); box-shadow: none; border: 1px dashed var(--line); background: transparent;
+  }
+  .card-new:hover { color: var(--text); background: var(--hover); box-shadow: none; }
+  .cards-empty { grid-column: 1 / -1; color: var(--faint); font-size: 0.9rem; padding: 0.5rem 0.2rem; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    padding: 0 0.55rem; border-radius: 999px; font-size: 0.8rem; line-height: 1.7; white-space: nowrap;
+  }
+  .pill.dot::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; opacity: 0.85; }
+  .pill.dot { color: var(--text); }
+  .pill.dot.grey { background: var(--grey-bg); } .pill.dot.grey::before { background: var(--grey); }
+  .pill.dot.blue { background: var(--blue-bg); } .pill.dot.blue::before { background: var(--blue); }
+  .pill.dot.green { background: var(--green-bg); } .pill.dot.green::before { background: var(--green); }
+  .pill.red { background: var(--red-bg); color: var(--red); }
+  .pill.amber { background: var(--amber-bg); color: var(--amber); }
+  .pill.slate { background: var(--slate-bg); color: var(--slate); }
+
+  .progress { display: flex; align-items: center; gap: 0.6rem; font-size: 0.84rem; }
+  .bar { width: 3.8rem; height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--bar); border-radius: 2px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; min-width: 40rem; border-collapse: collapse; font-size: 0.93rem; }
+  th {
+    text-align: left; font-weight: 400; color: var(--muted);
+    padding: 0.3rem 0.6rem 0.45rem; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  th .ico { margin-right: 0.35rem; vertical-align: -0.12em; color: var(--faint); }
+  th .aa { font-size: 0.85rem; margin-right: 0.35rem; color: var(--faint); }
+  td { padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:hover td { background: var(--hover); }
+  tr.empty-row:hover td { background: none; }
+  .empty-row td { color: var(--faint); padding: 0.6rem 0.6rem 0.6rem 2.6rem; }
+  .name-cell { display: flex; align-items: center; gap: 0.55rem; min-width: 12rem; }
+  tr.done .link-btn { color: var(--faint); text-decoration: line-through; }
+  .due.late { color: var(--red); }
+  .proj-link { display: inline-flex; align-items: center; gap: 0.35rem; border: 0; background: none; padding: 0; white-space: nowrap; }
+  .proj-link .ico { color: var(--muted); }
+  .proj-link:hover span:last-child { text-decoration: underline; text-underline-offset: 3px; }
+  .faint { color: var(--faint); }
+  .cards + .add-row { margin-top: 0.9rem; }
+  .add-row {
+    display: inline-flex; align-items: center; gap: 0.4rem; margin-top: 0.4rem;
+    border: 0; background: none; color: var(--faint); padding: 0.35rem 0.6rem; border-radius: 4px;
+  }
+  .add-row:hover { background: var(--hover); color: var(--text); }
+
+  /* 核取方塊 */
+  .box {
+    appearance: none; -webkit-appearance: none; flex: none;
+    width: 1rem; height: 1rem; margin: 0; border-radius: 3px;
+    border: 1.5px solid var(--faint); background: transparent; cursor: pointer;
+    display: grid; place-content: center;
+  }
+  .box::after {
+    content: ""; width: 0.28rem; height: 0.52rem; border: solid #fff; border-width: 0 2px 2px 0;
+    transform: rotate(45deg) translate(-0.5px, -1px) scale(0); transition: transform .12s;
+  }
+  .box:checked { background: var(--check); border-color: var(--check); }
+  .box:checked::after { transform: rotate(45deg) translate(-0.5px, -1px) scale(1); }
+
+  /* ---------- 右側目錄 ---------- */
+  .toc {
+    position: fixed; right: 1.6rem; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 0.7rem; z-index: 5;
+  }
+  .toc a { display: block; width: 1.1rem; height: 2px; background: var(--line); border-radius: 1px; transition: background .15s, width .15s; margin-left: auto; }
+  .toc a:hover { background: var(--faint); }
+  .toc a.active { background: var(--text); width: 1.35rem; }
+  @media (max-width: 1260px) { .toc { display: none; } }
+
+  /* ---------- 對話框 ---------- */
+  dialog {
+    width: min(31rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem);
+    border: 0; border-radius: 10px; padding: 0;
+    background: var(--bg); color: var(--text);
+    box-shadow: 0 20px 60px rgba(15, 15, 15, 0.25), 0 0 0 1px rgba(15, 15, 15, 0.06);
+  }
+  dialog::backdrop { background: rgba(35, 32, 30, 0.38); }
+  dialog form { padding: 1.35rem 1.4rem 1.2rem; display: grid; gap: 0.85rem; }
+  dialog h3 { margin: 0 0 0.15rem; font-size: 1.15rem; font-weight: 700; }
+  .field { display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--muted); }
+  .field input, .field select {
+    width: 100%; font-size: 0.95rem; color: var(--text);
+    padding: 0.42rem 0.6rem; border: 1px solid var(--line); border-radius: 6px; background: var(--bg);
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--check); box-shadow: 0 0 0 3px color-mix(in srgb, var(--check) 20%, transparent); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .checks { display: flex; gap: 1.25rem; flex-wrap: wrap; font-size: 0.92rem; }
+  .checks label { display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; }
+  .form-error { margin: 0; color: var(--red); font-size: 0.85rem; }
+  .dialog-actions { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.3rem; }
+  .spacer { flex: 1; }
+  .btn-primary { border: 0; border-radius: 6px; padding: 0.42rem 1.05rem; background: var(--text); color: var(--bg); font-weight: 500; }
+  .btn-ghost { border: 1px solid var(--line); border-radius: 6px; padding: 0.4rem 0.95rem; background: transparent; }
+  .btn-ghost:hover { background: var(--hover); }
+  .btn-danger { border: 0; background: none; color: var(--red); padding: 0.4rem 0.3rem; border-radius: 6px; }
+  .btn-danger:hover { background: var(--red-bg); }
+
+  .proj-tasks { border-top: 1px solid var(--line); padding-top: 0.8rem; }
+  .proj-tasks h4 { margin: 0 0 0.4rem; font-size: 0.9rem; font-weight: 500; }
+  .mini-list { list-style: none; margin: 0; padding: 0; max-height: 13rem; overflow: auto; }
+  .mini-list li { display: flex; align-items: center; gap: 0.55rem; padding: 0.3rem 0.15rem; border-bottom: 1px solid var(--line); font-size: 0.92rem; }
+  .mini-list li.done .link-btn { color: var(--faint); text-decoration: line-through; }
+  .mini-list .when { margin-left: auto; font-size: 0.8rem; color: var(--faint); white-space: nowrap; }
+  .mini-empty { color: var(--faint); font-size: 0.88rem; margin: 0.2rem 0; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+    transform: translate(-50%, 1rem); opacity: 0; pointer-events: none;
+    background: var(--text); color: var(--bg); padding: 0.55rem 1rem; border-radius: 8px;
+    font-size: 0.9rem; transition: opacity .2s, transform .2s; z-index: 50; max-width: calc(100vw - 2rem);
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .panel { margin-bottom: 1.5rem; }
+    .left { order: 2; }
+    .right { order: 1; }
+    .cover-actions { opacity: 1; }
+  }
+  @media (max-width: 520px) {
+    .field-row { grid-template-columns: 1fr; }
+    .cards { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: 0.8rem; }
+    .card-cover { height: 6.5rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover" id="cover">
+  <svg id="defaultCover" viewBox="0 0 1600 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="cvDesk" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8A817B"/><stop offset=".55" stop-color="#6E6762"/><stop offset="1" stop-color="#57514D"/>
+      </linearGradient>
+      <pattern id="cvGrid" width="18" height="18" patternUnits="userSpaceOnUse">
+        <circle cx="9" cy="9" r="1.1" fill="#CFCBC5"/>
+      </pattern>
+      <pattern id="cvWeave" width="26" height="14" patternUnits="userSpaceOnUse">
+        <path d="M0 7 Q6.5 0 13 7 T26 7" fill="none" stroke="#8C6E4D" stroke-width="3" opacity=".55"/>
+      </pattern>
+      <filter id="cvGrain"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .09 0"/></filter>
+      <filter id="cvShadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#2A2320" flood-opacity=".38"/></filter>
+    </defs>
+    <rect width="1600" height="420" fill="url(#cvDesk)"/>
+    <ellipse cx="110" cy="70" rx="330" ry="230" fill="#B79873"/>
+    <ellipse cx="110" cy="70" rx="330" ry="230" fill="url(#cvWeave)"/>
+    <ellipse cx="110" cy="70" rx="250" ry="160" fill="#A78663" opacity=".55"/>
+    <rect x="1270" y="-40" width="360" height="190" rx="14" fill="#4A4644" transform="rotate(-6 1400 60)"/>
+    <g transform="translate(520 -70) rotate(-21)" filter="url(#cvShadow)">
+      <rect width="780" height="540" rx="10" fill="#DEDAD4"/>
+      <rect x="12" y="10" width="374" height="520" rx="4" fill="#F2F0EC"/>
+      <rect x="394" y="10" width="374" height="520" rx="4" fill="#EDEBE6"/>
+      <rect x="40" y="140" width="320" height="360" fill="url(#cvGrid)" opacity=".8"/>
+      <rect x="420" y="40" width="320" height="460" fill="url(#cvGrid)" opacity=".8"/>
+      <path d="M200 120 V510 M580 30 V510" stroke="#C9C5BF" stroke-width="2"/>
+      <text x="46" y="92" font-family="Georgia, serif" font-size="30" letter-spacing="6" fill="#6C6660">MAY</text>
+      <g fill="#A9A49E"><circle cx="250" cy="58" r="3"/><circle cx="266" cy="58" r="3"/><circle cx="282" cy="58" r="3"/><circle cx="298" cy="58" r="3"/><circle cx="314" cy="58" r="3"/><circle cx="330" cy="58" r="3"/><circle cx="250" cy="74" r="3"/><circle cx="266" cy="74" r="3"/><circle cx="282" cy="74" r="3"/><circle cx="298" cy="74" r="3"/><circle cx="314" cy="74" r="3"/><circle cx="330" cy="74" r="3"/><circle cx="250" cy="90" r="3"/><circle cx="266" cy="90" r="3"/><circle cx="282" cy="90" r="3"/><circle cx="298" cy="90" r="3"/></g>
+    </g>
+    <path d="M1130 0 H1600 V420 H1330 C1290 340 1210 240 1190 150 C1175 90 1150 40 1130 0Z" fill="#F1EEEA" filter="url(#cvShadow)"/>
+    <path d="M1180 140 C1230 170 1300 180 1360 160" stroke="#DCD7D1" stroke-width="5" fill="none"/>
+    <g transform="translate(870 72) rotate(-27)">
+      <rect width="330" height="15" rx="7.5" fill="#2E2A28"/>
+      <rect x="250" y="0" width="12" height="15" fill="#B8B3AD"/>
+      <path d="M-44 7.5 L0 0 V15Z" fill="#BDB8B2"/>
+    </g>
+    <rect width="1600" height="420" filter="url(#cvGrain)"/>
+  </svg>
+  <img id="customCover" alt="" hidden>
+  <div class="cover-actions">
+    <button type="button" id="changeCover">更換封面</button>
+    <button type="button" id="resetCover" hidden>還原預設</button>
+  </div>
+  <div class="cover-edge"></div>
+  <input type="file" id="coverFile" accept="image/*" hidden>
+</div>
+
+<main class="page">
+  <h1 class="title" id="pageTitle" contenteditable="true" spellcheck="false" aria-label="頁面標題"></h1>
+
+  <details class="navbar">
+    <summary><span class="tri">▶</span>導覽列</summary>
+    <nav aria-label="頁面導覽">
+      <a href="#inbox">任務暫存區</a>
+      <a href="#shortcuts">快捷鍵</a>
+      <a href="#board">公告欄</a>
+      <a href="#projects">專案</a>
+      <a href="#recent">近期任務</a>
+    </nav>
+  </details>
+
+  <div class="layout">
+    <aside class="left">
+      <section class="panel" id="inbox" aria-labelledby="inboxTitle">
+        <h2 id="inboxTitle">任務暫存區</h2>
+        <details class="hint">
+          <summary><span class="tri">▶</span>排程或完成後，任務就不會再出現在這裡。</summary>
+          <p>先把想到的事丟進來，之後在任務裡設定截止日，它就會移到「近期任務」。</p>
+        </details>
+        <ul class="inbox-list" id="inboxList"></ul>
+        <p class="inbox-empty" id="inboxEmpty" hidden>暫存區是空的。</p>
+        <form class="quick-add" id="inboxForm" autocomplete="off">
+          <span class="ico" data-icon="download"></span>
+          <label for="inboxInput" class="sr-only">新增到暫存區</label>
+          <input id="inboxInput" maxlength="120" placeholder="想到什麼就先記下來，按 Enter 新增">
+        </form>
+      </section>
+
+      <section class="panel" id="shortcuts" aria-labelledby="scTitle">
+        <h2 class="ruled" id="scTitle">快捷鍵</h2>
+        <div class="shortcuts">
+          <button type="button" class="shortcut" id="scTask"><span class="ico" data-icon="plus"></span>新增任務</button>
+          <button type="button" class="shortcut" id="scProject"><span class="ico" data-icon="plus"></span>新增專案</button>
+          <button type="button" class="shortcut" id="scToday"><span class="ico" data-icon="checkSquare"></span>將今日任務全標為已完成</button>
+        </div>
+      </section>
+
+      <section class="panel" id="board" aria-labelledby="boardTitle">
+        <h2 id="boardTitle">公告欄</h2>
+        <ul class="notes" id="notes"></ul>
+        <form class="quick-add" id="noteForm" autocomplete="off">
+          <span class="ico" data-icon="grid"></span>
+          <label for="noteInput" class="sr-only">新增公告</label>
+          <input id="noteInput" maxlength="200" placeholder="寫一則公告，按 Enter 張貼">
+        </form>
+      </section>
+    </aside>
+
+    <div class="right">
+      <section class="section" id="projects" aria-labelledby="projTitle">
+        <h2 id="projTitle">專案</h2>
+        <div class="tabs" role="tablist" aria-label="專案檢視">
+          <button class="tab" role="tab" data-ptab="fav" aria-selected="true"><span class="ico" data-icon="star"></span>最愛</button>
+          <button class="tab" role="tab" data-ptab="all" aria-selected="false"><span class="ico" data-icon="grid"></span>所有</button>
+          <button class="tab" role="tab" data-ptab="archived" aria-selected="false"><span class="ico" data-icon="archive"></span>封存</button>
+        </div>
+        <div class="cards" id="cards" role="tabpanel"></div>
+        <button type="button" class="add-row" id="projectAdd"><span class="ico" data-icon="plus"></span>新增專案</button>
+      </section>
+
+      <section class="section" id="recent" aria-labelledby="recentTitle">
+        <h2 id="recentTitle">近期任務</h2>
+        <div class="tabs" role="tablist" aria-label="近期任務範圍">
+          <button class="tab" role="tab" data-rtab="today" aria-selected="true"><span class="ico" data-icon="bell"></span>今日到期</button>
+          <button class="tab" role="tab" data-rtab="week" aria-selected="false"><span class="ico" data-icon="calendar"></span>未來 7 天</button>
+          <button class="tab" role="tab" data-rtab="month" aria-selected="false"><span class="ico" data-icon="calendar"></span>未來 30 天</button>
+          <button class="tab" role="tab" data-rtab="overdue" aria-selected="false"><span class="ico" data-icon="alert"></span>已逾期<span class="count" id="overdueCount" hidden></span></button>
+        </div>
+        <div class="table-wrap" role="tabpanel">
+          <table>
+            <thead>
+              <tr>
+                <th><span class="aa">Aa</span>名稱</th>
+                <th><span class="ico" data-icon="status"></span>狀態</th>
+                <th><span class="ico" data-icon="calendarO"></span>截止日</th>
+                <th><span class="ico" data-icon="folder"></span>專案</th>
+                <th><span class="ico" data-icon="priority"></span>重要性</th>
+              </tr>
+            </thead>
+            <tbody id="recentBody"></tbody>
+          </table>
+        </div>
+        <button type="button" class="add-row" id="recentAdd"><span class="ico" data-icon="plus"></span>新增任務</button>
+      </section>
+    </div>
+  </div>
+</main>
+
+<nav class="toc" aria-label="段落">
+  <a href="#inbox" aria-label="任務暫存區"></a>
+  <a href="#shortcuts" aria-label="快捷鍵"></a>
+  <a href="#board" aria-label="公告欄"></a>
+  <a href="#projects" aria-label="專案"></a>
+  <a href="#recent" aria-label="近期任務"></a>
+</nav>
+
+<!-- 任務對話框 -->
+<dialog id="taskDialog" aria-labelledby="taskDialogTitle">
+  <form id="taskForm" novalidate autocomplete="off">
+    <h3 id="taskDialogTitle">新增任務</h3>
+    <label class="field"><span>名稱</span><input name="title" maxlength="120" placeholder="要完成什麼？"></label>
+    <div class="field-row">
+      <label class="field"><span>狀態</span>
+        <select name="status"><option>未開始</option><option>進行中</option><option>已完成</option></select>
+      </label>
+      <label class="field"><span>重要性</span>
+        <select name="priority"><option value="">未設定</option><option>高</option><option>中</option><option>低</option></select>
+      </label>
+    </div>
+    <div class="field-row">
+      <label class="field"><span>截止日</span><input type="date" name="due"></label>
+      <label class="field"><span>專案</span><select name="projectId"></select></label>
+    </div>
+    <p class="form-error" id="taskError" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn-danger" id="taskDelete">刪除</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn-ghost" data-close>取消</button>
+      <button type="submit" class="btn-primary">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 專案對話框 -->
+<dialog id="projectDialog" aria-labelledby="projectDialogTitle">
+  <form id="projectForm" novalidate autocomplete="off">
+    <h3 id="projectDialogTitle">新增專案</h3>
+    <label class="field"><span>專案名稱</span><input name="name" maxlength="60" placeholder="例如：品牌網站改版"></label>
+    <div class="field-row">
+      <label class="field"><span>開始日</span><input type="date" name="start"></label>
+      <label class="field"><span>結束日</span><input type="date" name="end"></label>
+    </div>
+    <label class="field"><span>狀態</span>
+      <select name="status"><option>未開始</option><option>進行中</option><option>已完成</option></select>
+    </label>
+    <div class="checks">
+      <label><input type="checkbox" class="box" name="favorite">加入最愛</label>
+      <label><input type="checkbox" class="box" name="archived">封存</label>
+    </div>
+    <div class="proj-tasks" id="projTasks">
+      <h4 id="projTasksTitle">專案任務</h4>
+      <ul class="mini-list" id="projTaskList"></ul>
+      <div class="quick-add">
+        <span class="ico" data-icon="plus"></span>
+        <label for="projTaskInput" class="sr-only">新增任務到此專案</label>
+        <input id="projTaskInput" maxlength="120" placeholder="新增任務到此專案，按 Enter">
+      </div>
+    </div>
+    <p class="form-error" id="projectError" hidden></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn-danger" id="projectDelete">刪除專案</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn-ghost" data-close>取消</button>
+      <button type="submit" class="btn-primary">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const KEY = "project-tasks.v1";
+  const COVER_KEY = "project-tasks.cover";
+  const OLD_KEY = "todo-list.v1";
+  const DEFAULT_TITLE = "一頁式「專案任務」管理 ✦ 優雅";
+  const STATUSES = ["未開始", "進行中", "已完成"];
+  const PRIORITY_RANK = { "高": 0, "中": 1, "低": 2, "": 3 };
+
+  // ---------- 圖示 ----------
+  const ICON = {
+    star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.3l-5.6 2.9 1.1-6.3L2.9 9.5l6.3-.9z"/></svg>',
+    grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></svg>',
+    archive: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3.5" width="18" height="4.5" rx="1"/><path fill-rule="evenodd" d="M4.5 9.5h15V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19zm4.5 2.5v1.8h6V12z"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5a6 6 0 0 0-6 6v3.8L4.2 16v1.3h15.6V16L18 12.3V8.5a6 6 0 0 0-6-6zM9.6 18.8a2.4 2.4 0 0 0 4.8 0z"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2zM5 9v10h14V9zm2 2h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zm-8 4h2v2H7zm4 0h2v2h-2z"/></svg>',
+    calendarO: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path d="M3.5 9.5h17M8 2.5v4M16 2.5v4"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-1 5v7h2V7zm0 9v2h2v-2z"/></svg>',
+    folder: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.5A2 2 0 0 1 5 3.5h4.3l2 2.3H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    checkSquare: '<svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm5.4 13.3 7.2-7.2-1.4-1.4-5.8 5.8-2.8-2.8-1.4 1.4z"/></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11"/><path d="m7.5 10 4.5 4.5 4.5-4.5"/><path d="M4.5 16.5v3.5h15v-3.5"/></svg>',
+    status: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v3.2M12 17.8V21M3 12h3.2M17.8 12H21M5.6 5.6l2.3 2.3M16.1 16.1l2.3 2.3M5.6 18.4l2.3-2.3M16.1 7.9l2.3-2.3"/></svg>',
+    priority: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.8"/><path d="m8.5 10.5 3.5 3.5 3.5-3.5"/></svg>',
+    task: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 3H19a2 2 0 0 1 2 2v10.5h-2.2V5.2H8.5z"/><rect x="3" y="8" width="13" height="13" rx="2"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+  };
+  const FOLDER_ART = '<svg viewBox="0 0 64 52" aria-hidden="true"><path d="M3 8a4 4 0 0 1 4-4h13.5l5 5H57a4 4 0 0 1 4 4v32a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#B39892"/><rect x="8" y="11" width="47" height="30" rx="2" fill="#F6F2EF"/><rect x="11" y="14" width="44" height="28" rx="2" fill="#EDE5E1"/><path d="M3 19.5a3 3 0 0 1 3-3h52a3 3 0 0 1 3 3.3L58.3 45a4 4 0 0 1-4 3.5H9.7a4 4 0 0 1-4-3.5z" fill="#D5BFBA"/></svg>';
+
+  // ---------- 工具 ----------
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+  function h(tag, props, ...kids) {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(props || {})) {
+      if (v == null || v === false) continue;
+      if (k === "class") el.className = v;
+      else if (k === "html") el.innerHTML = v;
+      else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2), v);
+      else if (typeof v === "boolean") el[k] = v;
+      else el.setAttribute(k, v);
+    }
+    for (const kid of kids.flat()) {
+      if (kid == null || kid === false) continue;
+      el.append(kid.nodeType ? kid : String(kid));
+    }
+    return el;
+  }
+  const icon = (name, cls) => h("span", { class: "ico" + (cls ? " " + cls : ""), "aria-hidden": "true", html: ICON[name] });
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const pad = (n) => String(n).padStart(2, "0");
+  const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const today = () => ymd(new Date());
+  const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+  const fmt = (s) => (s ? s.replace(/-/g, "/") : "");
+  const fld = (form, name) => form.elements.namedItem(name);
+
+  let toastTimer;
+  function toast(msg) {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+
+  // ---------- LocalStorage ----------
+  function seed() {
+    const mk = (title, status, due, projectId, priority) => ({
+      id: uid(), title, status, due, projectId, priority,
+      createdAt: Date.now(), doneAt: status === "已完成" ? Date.now() : null
+    });
+    const projects = [
+      { id: "pA", name: "專案 A", start: addDays(-10), end: addDays(35), status: "進行中", favorite: true, archived: false, createdAt: Date.now() },
+      { id: "pB", name: "專案 B", start: addDays(3), end: addDays(35), status: "未開始", favorite: true, archived: false, createdAt: Date.now() },
+      { id: "pC", name: "專案 C", start: addDays(3), end: addDays(35), status: "未開始", favorite: true, archived: false, createdAt: Date.now() }
+    ];
+    const tasks = [
+      mk("整理需求清單", "已完成", addDays(-3), "pA", "中"),
+      mk("繪製首頁線框圖", "進行中", today(), "pA", "高"),
+      mk("撰寫提案簡報", "未開始", addDays(4), "pA", "高"),
+      mk("安排使用者訪談", "未開始", addDays(12), "pB", "中"),
+      mk("回覆客戶來信", "未開始", "", "", "低")
+    ];
+    const notes = [{ id: uid(), text: "點「新增任務」或在暫存區直接輸入，就能開始規劃。", createdAt: Date.now() }];
+    return { title: DEFAULT_TITLE, projects, tasks, notes };
+  }
+
+  function normalize(d) {
+    return {
+      title: typeof d.title === "string" ? d.title : DEFAULT_TITLE,
+      projects: d.projects.filter((p) => p && p.id && typeof p.name === "string"),
+      tasks: d.tasks.filter((t) => t && t.id && typeof t.title === "string"),
+      notes: Array.isArray(d.notes) ? d.notes.filter((n) => n && typeof n.text === "string") : []
+    };
+  }
+
+  let migratedCount = 0;
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d && Array.isArray(d.projects) && Array.isArray(d.tasks)) return normalize(d);
+      }
+    } catch (e) { /* 讀不到就用預設資料 */ }
+
+    const s = seed();
+    // 匯入舊版待辦清單中未完成的項目
+    try {
+      const old = JSON.parse(localStorage.getItem(OLD_KEY) || "[]");
+      if (Array.isArray(old)) {
+        old.filter((o) => o && typeof o.text === "string" && !o.done).forEach((o) => {
+          s.tasks.push({ id: uid(), title: o.text, status: "未開始", due: "", projectId: "", priority: "", createdAt: o.createdAt || Date.now(), doneAt: null });
+          migratedCount++;
+        });
+      }
+    } catch (e) { /* 忽略 */ }
+    return s;
+  }
+
+  let state = load();
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      return true;
+    } catch (e) {
+      toast("無法儲存：瀏覽器封鎖了 LocalStorage，重新整理後變更會遺失。");
+      return false;
+    }
+  }
+  save();
+
+  window.addEventListener("storage", (e) => {
+    if (e.key === KEY) { state = load(); renderAll(); }
+    if (e.key === COVER_KEY) applyCover();
+  });
+
+  // ---------- 資料操作 ----------
+  const projectById = (id) => state.projects.find((p) => p.id === id);
+  const taskById = (id) => state.tasks.find((t) => t.id === id);
+
+  function setTaskDone(t, done) {
+    t.status = done ? "已完成" : (t.status === "已完成" ? "未開始" : t.status);
+    t.doneAt = done ? Date.now() : null;
+  }
+  function toggleTask(id) {
+    const t = taskById(id);
+    if (!t) return;
+    setTaskDone(t, t.status !== "已完成");
+    save();
+    renderAll();
+    if (projectDialog.open) renderProjectTasks();
+  }
+  function addTask(data) {
+    const t = Object.assign({ id: uid(), status: "未開始", due: "", projectId: "", priority: "", createdAt: Date.now(), doneAt: null }, data);
+    if (t.status === "已完成") t.doneAt = Date.now();
+    state.tasks.unshift(t);
+    save();
+    renderAll();
+    return t;
+  }
+
+  // ---------- 渲染 ----------
+  function statusPill(s) {
+    const cls = { "未開始": "grey", "進行中": "blue", "已完成": "green" }[s] || "grey";
+    return h("span", { class: `pill dot ${cls}` }, s || "未開始");
+  }
+  function priorityPill(p) {
+    if (!p) return h("span", { class: "faint" }, "—");
+    const cls = { "高": "red", "中": "amber", "低": "slate" }[p];
+    return h("span", { class: `pill ${cls}` }, p);
+  }
+  function taskBox(t) {
+    return h("input", {
+      type: "checkbox", class: "box", checked: t.status === "已完成",
+      "aria-label": `完成「${t.title}」`, onchange: () => toggleTask(t.id)
+    });
+  }
+
+  function renderTitle() {
+    const el = $("#pageTitle");
+    if (document.activeElement !== el) el.textContent = state.title;
+    document.title = state.title || "未命名";
+  }
+
+  function renderInbox() {
+    const list = $("#inboxList");
+    list.textContent = "";
+    const items = state.tasks.filter((t) => !t.due && t.status !== "已完成");
+    for (const t of items) {
+      list.append(h("li", {},
+        taskBox(t),
+        icon("task", "task"),
+        h("button", { type: "button", class: "link-btn", onclick: () => openTask(t.id) }, t.title)
+      ));
+    }
+    $("#inboxEmpty").hidden = items.length > 0;
+  }
+
+  function renderNotes() {
+    const ul = $("#notes");
+    ul.textContent = "";
+    for (const n of state.notes) {
+      const d = new Date(n.createdAt);
+      ul.append(h("li", { class: "note" },
+        h("p", {}, n.text),
+        h("time", { datetime: d.toISOString() }, `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`),
+        h("button", {
+          type: "button", class: "icon-btn x", "aria-label": "移除這則公告",
+          onclick: () => { state.notes = state.notes.filter((x) => x.id !== n.id); save(); renderNotes(); }
+        }, icon("x"))
+      ));
+    }
+  }
+
+  let projectTab = "fav";
+  function progressOf(p) {
+    const ts = state.tasks.filter((t) => t.projectId === p.id);
+    if (!ts.length) return null;
+    const pct = (ts.filter((t) => t.status === "已完成").length / ts.length) * 100;
+    return Math.round(pct * 10) / 10;
+  }
+  function renderProjects() {
+    const wrap = $("#cards");
+    wrap.textContent = "";
+    const list = state.projects.filter((p) =>
+      projectTab === "fav" ? p.favorite && !p.archived :
+      projectTab === "all" ? !p.archived : p.archived
+    );
+    for (const p of list) {
+      const pct = progressOf(p);
+      wrap.append(h("button", { type: "button", class: "card", onclick: () => openProject(p.id), "aria-label": `開啟專案「${p.name}」` },
+        h("span", { class: "card-cover", html: FOLDER_ART }),
+        h("span", { class: "card-body" },
+          h("span", { class: "card-title" }, icon("folder"), h("span", {}, p.name), p.favorite && projectTab !== "fav" ? icon("star", "star") : null),
+          (p.start || p.end) ? h("span", { class: "card-dates" }, `${fmt(p.start) || "—"} → ${fmt(p.end) || "—"}`) : null,
+          statusPill(p.status),
+          pct == null ? null : h("span", { class: "progress" },
+            `${pct}%`,
+            h("span", { class: "bar", "aria-hidden": "true" }, h("span", { style: `width:${pct}%` }))
+          )
+        )
+      ));
+    }
+    if (!list.length) {
+      wrap.append(h("p", { class: "cards-empty" },
+        projectTab === "fav" ? "還沒有最愛的專案。打開任一專案，勾選「加入最愛」就會出現在這裡。" :
+        projectTab === "archived" ? "沒有封存的專案。" : "還沒有專案。"
+      ));
+    }
+    $("#projectAdd").hidden = projectTab === "archived";
+  }
+
+  let recentTab = "today";
+  function recentTasks(tab) {
+    const T = today(), d7 = addDays(7), d30 = addDays(30);
+    const f = {
+      today: (t) => t.due === T,
+      week: (t) => t.due > T && t.due <= d7,
+      month: (t) => t.due > T && t.due <= d30,
+      overdue: (t) => t.due && t.due < T && t.status !== "已完成"
+    }[tab];
+    return state.tasks.filter((t) => t.due && f(t)).sort((a, b) =>
+      (a.status === "已完成") - (b.status === "已完成") ||
+      a.due.localeCompare(b.due) ||
+      PRIORITY_RANK[a.priority || ""] - PRIORITY_RANK[b.priority || ""]
+    );
+  }
+  function renderRecent() {
+    const body = $("#recentBody");
+    body.textContent = "";
+    const T = today();
+    const rows = recentTasks(recentTab);
+    for (const t of rows) {
+      const p = projectById(t.projectId);
+      const late = t.due < T && t.status !== "已完成";
+      body.append(h("tr", { class: t.status === "已完成" ? "done" : "" },
+        h("td", {}, h("div", { class: "name-cell" },
+          taskBox(t),
+          h("button", { type: "button", class: "link-btn", onclick: () => openTask(t.id) }, t.title)
+        )),
+        h("td", {}, statusPill(t.status)),
+        h("td", { class: "due" + (late ? " late" : "") }, fmt(t.due)),
+        h("td", {}, p
+          ? h("button", { type: "button", class: "proj-link", onclick: () => openProject(p.id) }, icon("folder"), h("span", {}, p.name))
+          : h("span", { class: "faint" }, "—")),
+        h("td", {}, priorityPill(t.priority))
+      ));
+    }
+    if (!rows.length) {
+      const msg = { today: "今天沒有到期的任務。", week: "未來 7 天沒有排定的任務。", month: "未來 30 天沒有排定的任務。", overdue: "沒有逾期的任務。" }[recentTab];
+      body.append(h("tr", { class: "empty-row" }, h("td", { colspan: "5" }, msg)));
+    }
+    const overdue = recentTasks("overdue").length;
+    const c = $("#overdueCount");
+    c.hidden = overdue === 0;
+    c.textContent = overdue;
+  }
+
+  function renderAll() {
+    renderTitle();
+    renderInbox();
+    renderNotes();
+    renderProjects();
+    renderRecent();
+  }
+
+  // ---------- 任務對話框 ----------
+  const taskDialog = $("#taskDialog");
+  const taskForm = $("#taskForm");
+  let editingTaskId = null;
+  let returnToProject = null;
+
+  function fillProjectOptions(select, currentId) {
+    select.textContent = "";
+    select.append(h("option", { value: "" }, "無"));
+    state.projects
+      .filter((p) => !p.archived || p.id === currentId)
+      .forEach((p) => select.append(h("option", { value: p.id }, p.name)));
+    select.value = currentId || "";
+  }
+
+  function openTask(id, preset) {
+    const t = id ? taskById(id) : null;
+    editingTaskId = t ? t.id : null;
+    const data = t || Object.assign({ title: "", status: "未開始", priority: "", due: "", projectId: "" }, preset);
+    $("#taskDialogTitle").textContent = t ? "編輯任務" : "新增任務";
+    fld(taskForm, "title").value = data.title;
+    fld(taskForm, "status").value = data.status;
+    fld(taskForm, "priority").value = data.priority || "";
+    fld(taskForm, "due").value = data.due || "";
+    fillProjectOptions(fld(taskForm, "projectId"), data.projectId);
+    $("#taskError").hidden = true;
+    const del = $("#taskDelete");
+    del.hidden = !t;
+    disarm(del, "刪除");
+    taskDialog.showModal();
+    fld(taskForm, "title").focus();
+  }
+
+  taskForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const title = fld(taskForm, "title").value.trim();
+    if (!title) {
+      $("#taskError").textContent = "請輸入任務名稱。";
+      $("#taskError").hidden = false;
+      fld(taskForm, "title").focus();
+      return;
+    }
+    const data = {
+      title,
+      status: fld(taskForm, "status").value,
+      priority: fld(taskForm, "priority").value,
+      due: fld(taskForm, "due").value,
+      projectId: fld(taskForm, "projectId").value
+    };
+    if (editingTaskId) {
+      const t = taskById(editingTaskId);
+      const wasDone = t.status === "已完成";
+      Object.assign(t, data);
+      if (data.status === "已完成" && !wasDone) t.doneAt = Date.now();
+      if (data.status !== "已完成") t.doneAt = null;
+      save();
+      renderAll();
+      toast("已儲存任務");
+    } else {
+      addTask(data);
+      toast(data.due ? "已新增任務" : "已新增到任務暫存區");
+    }
+    taskDialog.close();
+  });
+
+  $("#taskDelete").addEventListener("click", (e) => {
+    const btn = e.currentTarget;
+    if (!btn.dataset.armed) return arm(btn, "再按一次確認刪除");
+    state.tasks = state.tasks.filter((t) => t.id !== editingTaskId);
+    save();
+    renderAll();
+    taskDialog.close();
+    toast("已刪除任務");
+  });
+
+  taskDialog.addEventListener("close", () => {
+    if (returnToProject) {
+      const id = returnToProject;
+      returnToProject = null;
+      if (projectById(id)) openProject(id);
+    }
+  });
+
+  // ---------- 專案對話框 ----------
+  const projectDialog = $("#projectDialog");
+  const projectForm = $("#projectForm");
+  let editingProjectId = null;
+
+  function openProject(id) {
+    const p = id ? projectById(id) : null;
+    editingProjectId = p ? p.id : null;
+    $("#projectDialogTitle").textContent = p ? "編輯專案" : "新增專案";
+    fld(projectForm, "name").value = p ? p.name : "";
+    fld(projectForm, "start").value = p ? p.start || "" : today();
+    fld(projectForm, "end").value = p ? p.end || "" : "";
+    fld(projectForm, "status").value = p ? p.status : "未開始";
+    fld(projectForm, "favorite").checked = p ? !!p.favorite : true;
+    fld(projectForm, "archived").checked = p ? !!p.archived : false;
+    $("#projectError").hidden = true;
+    $("#projTasks").hidden = !p;
+    const del = $("#projectDelete");
+    del.hidden = !p;
+    disarm(del, "刪除專案");
+    renderProjectTasks();
+    projectDialog.showModal();
+    if (!p) fld(projectForm, "name").focus();
+  }
+
+  function renderProjectTasks() {
+    const ul = $("#projTaskList");
+    ul.textContent = "";
+    if (!editingProjectId) return;
+    const ts = state.tasks.filter((t) => t.projectId === editingProjectId)
+      .sort((a, b) => (a.status === "已完成") - (b.status === "已完成") || (a.due || "9999").localeCompare(b.due || "9999"));
+    const done = ts.filter((t) => t.status === "已完成").length;
+    $("#projTasksTitle").textContent = ts.length ? `專案任務（完成 ${done}／${ts.length}）` : "專案任務";
+    for (const t of ts) {
+      ul.append(h("li", { class: t.status === "已完成" ? "done" : "" },
+        taskBox(t),
+        h("button", {
+          type: "button", class: "link-btn",
+          onclick: () => { returnToProject = editingProjectId; projectDialog.close(); openTask(t.id); }
+        }, t.title),
+        h("span", { class: "when" }, t.due ? fmt(t.due).slice(5) : "未排程")
+      ));
+    }
+    if (!ts.length) ul.append(h("li", { class: "mini-empty" }, "這個專案還沒有任務。"));
+  }
+
+  $("#projTaskInput").addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const v = e.target.value.trim();
+    if (!v || !editingProjectId) return;
+    addTask({ title: v, projectId: editingProjectId });
+    e.target.value = "";
+    renderProjectTasks();
+  });
+
+  projectForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const err = $("#projectError");
+    const name = fld(projectForm, "name").value.trim();
+    const start = fld(projectForm, "start").value;
+    const end = fld(projectForm, "end").value;
+    if (!name) { err.textContent = "請輸入專案名稱。"; err.hidden = false; fld(projectForm, "name").focus(); return; }
+    if (start && end && end < start) { err.textContent = "結束日不能早於開始日。"; err.hidden = false; fld(projectForm, "end").focus(); return; }
+    const data = {
+      name, start, end,
+      status: fld(projectForm, "status").value,
+      favorite: fld(projectForm, "favorite").checked,
+      archived: fld(projectForm, "archived").checked
+    };
+    if (editingProjectId) {
+      Object.assign(projectById(editingProjectId), data);
+      toast("已儲存專案");
+    } else {
+      state.projects.push(Object.assign({ id: uid(), createdAt: Date.now() }, data));
+      toast("已新增專案");
+    }
+    save();
+    renderAll();
+    projectDialog.close();
+  });
+
+  $("#projectDelete").addEventListener("click", (e) => {
+    const btn = e.currentTarget;
+    if (!btn.dataset.armed) return arm(btn, "再按一次確認（任務會保留）");
+    state.projects = state.projects.filter((p) => p.id !== editingProjectId);
+    state.tasks.forEach((t) => { if (t.projectId === editingProjectId) t.projectId = ""; });
+    save();
+    renderAll();
+    projectDialog.close();
+    toast("已刪除專案，相關任務已保留");
+  });
+
+  // 兩段式刪除按鈕
+  function arm(btn, label) {
+    btn.dataset.armed = "1";
+    btn.textContent = label;
+    clearTimeout(btn._t);
+    btn._t = setTimeout(() => disarm(btn, btn.dataset.label), 3500);
+  }
+  function disarm(btn, label) {
+    btn.dataset.label = label;
+    delete btn.dataset.armed;
+    btn.textContent = label;
+  }
+
+  // 對話框共用：取消與點背景關閉
+  for (const d of [taskDialog, projectDialog]) {
+    d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
+    d.querySelector("[data-close]").addEventListener("click", () => d.close());
+  }
+
+  // ---------- 其他事件 ----------
+  $$("[data-icon]").forEach((el) => { el.innerHTML = ICON[el.dataset.icon] || ""; el.setAttribute("aria-hidden", "true"); });
+
+  const titleEl = $("#pageTitle");
+  titleEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); titleEl.blur(); } });
+  titleEl.addEventListener("paste", (e) => {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData("text").replace(/\s+/g, " ");
+    document.execCommand("insertText", false, text);
+  });
+  titleEl.addEventListener("blur", () => {
+    state.title = titleEl.textContent.trim().slice(0, 80);
+    save();
+    renderTitle();
+  });
+
+  $("#inboxForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = $("#inboxInput");
+    const v = input.value.trim();
+    if (!v) return;
+    addTask({ title: v });
+    input.value = "";
+  });
+
+  $("#noteForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = $("#noteInput");
+    const v = input.value.trim();
+    if (!v) return;
+    state.notes.unshift({ id: uid(), text: v, createdAt: Date.now() });
+    save();
+    renderNotes();
+    input.value = "";
+  });
+
+  $("#scTask").addEventListener("click", () => openTask(null, { due: today() }));
+  $("#recentAdd").addEventListener("click", () => {
+    const preset = { today: today(), week: addDays(1), month: addDays(1), overdue: today() }[recentTab];
+    openTask(null, { due: preset });
+  });
+  $("#scProject").addEventListener("click", () => openProject(null));
+  $("#projectAdd").addEventListener("click", () => openProject(null));
+  $("#scToday").addEventListener("click", () => {
+    const list = state.tasks.filter((t) => t.due === today() && t.status !== "已完成");
+    if (!list.length) return toast("今天沒有未完成的到期任務。");
+    list.forEach((t) => setTaskDone(t, true));
+    save();
+    renderAll();
+    toast(`已將 ${list.length} 項今日任務標為完成`);
+  });
+
+  function selectTab(buttons, btn) {
+    buttons.forEach((b) => b.setAttribute("aria-selected", String(b === btn)));
+  }
+  const pTabs = $$("[data-ptab]");
+  pTabs.forEach((b) => b.addEventListener("click", () => { projectTab = b.dataset.ptab; selectTab(pTabs, b); renderProjects(); }));
+  const rTabs = $$("[data-rtab]");
+  rTabs.forEach((b) => b.addEventListener("click", () => { recentTab = b.dataset.rtab; selectTab(rTabs, b); renderRecent(); }));
+
+  // ---------- 封面 ----------
+  function applyCover() {
+    let data = null;
+    try { data = localStorage.getItem(COVER_KEY); } catch (e) { /* 忽略 */ }
+    const img = $("#customCover");
+    if (data) {
+      img.src = data;
+      img.hidden = false;
+      $("#defaultCover").style.display = "none";
+    } else {
+      img.hidden = true;
+      img.removeAttribute("src");
+      $("#defaultCover").style.display = "";
+    }
+    $("#resetCover").hidden = !data;
+  }
+  $("#changeCover").addEventListener("click", () => $("#coverFile").click());
+  $("#resetCover").addEventListener("click", () => {
+    try { localStorage.removeItem(COVER_KEY); } catch (e) { /* 忽略 */ }
+    applyCover();
+    toast("已還原預設封面");
+  });
+  $("#coverFile").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1800 / img.width);
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        let url = c.toDataURL("image/jpeg", 0.8);
+        if (url.length > 2_500_000) url = c.toDataURL("image/jpeg", 0.6);
+        try {
+          localStorage.setItem(COVER_KEY, url);
+          applyCover();
+          toast("已更換封面");
+        } catch (err) {
+          toast("圖片太大，LocalStorage 放不下，請換一張較小的圖片。");
+        }
+      };
+      img.onerror = () => toast("無法讀取這個圖片檔。");
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ---------- 右側目錄 ----------
+  const tocLinks = [...$$(".toc a")];
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        tocLinks.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + en.target.id));
+      });
+    }, { rootMargin: "-35% 0px -55% 0px" });
+    ["inbox", "shortcuts", "board", "projects", "recent"].forEach((id) => io.observe(document.getElementById(id)));
+  }
+
+  applyCover();
+  renderAll();
+  if (migratedCount) toast(`已從舊版清單匯入 ${migratedCount} 項待辦到暫存區`);
+})();
+</script>
+</body>
+</html>
