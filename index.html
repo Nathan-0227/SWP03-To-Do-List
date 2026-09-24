@@ -320,8 +320,26 @@
     content: ""; width: 0.28rem; height: 0.52rem; border: solid #fff; border-width: 0 2px 2px 0;
     transform: rotate(45deg) translate(-0.5px, -1px) scale(0); transition: transform .12s;
   }
+  .box { width: 1.1rem; height: 1.1rem; border-color: var(--muted); }
+  .box:hover { border-color: var(--text); background: var(--hover); }
   .box:checked { background: var(--check); border-color: var(--check); }
   .box:checked::after { transform: rotate(45deg) translate(-0.5px, -1px) scale(1); }
+
+  /* 刪除按鈕 */
+  .row-del { opacity: 0.6; transition: opacity .15s; }
+  li:hover .row-del, tr:hover .row-del, .row-del:focus-visible { opacity: 1; }
+  .row-del:hover { color: var(--red); background: var(--red-bg); }
+  @media (hover: none) { .row-del { opacity: 0.75; } }
+  .inbox-list .link-btn { flex: 1; }
+  .inbox-list li { transition: opacity .3s; }
+  .inbox-list li.done .link-btn { color: var(--faint); text-decoration: line-through; }
+  .inbox-list li.leaving { opacity: 0; }
+  th.act, td.act { width: 2.6rem; padding: 0.2rem 0.3rem; text-align: right; }
+  .toast button {
+    margin-left: 0.9rem; border: 0; background: none; color: inherit; padding: 0;
+    font-weight: 700; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .toast.show { pointer-events: auto; }
 
   /* ---------- 右側目錄 ---------- */
   .toc {
@@ -515,6 +533,7 @@
           <button class="tab" role="tab" data-rtab="week" aria-selected="false"><span class="ico" data-icon="calendar"></span>未來 7 天</button>
           <button class="tab" role="tab" data-rtab="month" aria-selected="false"><span class="ico" data-icon="calendar"></span>未來 30 天</button>
           <button class="tab" role="tab" data-rtab="overdue" aria-selected="false"><span class="ico" data-icon="alert"></span>已逾期<span class="count" id="overdueCount" hidden></span></button>
+          <button class="tab" role="tab" data-rtab="done" aria-selected="false"><span class="ico" data-icon="checkSquare"></span>已完成</button>
         </div>
         <div class="table-wrap" role="tabpanel">
           <table>
@@ -525,6 +544,7 @@
                 <th><span class="ico" data-icon="calendarO"></span>截止日</th>
                 <th><span class="ico" data-icon="folder"></span>專案</th>
                 <th><span class="ico" data-icon="priority"></span>重要性</th>
+                <th class="act"><span class="sr-only">刪除</span></th>
               </tr>
             </thead>
             <tbody id="recentBody"></tbody>
@@ -635,6 +655,7 @@
     status: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v3.2M12 17.8V21M3 12h3.2M17.8 12H21M5.6 5.6l2.3 2.3M16.1 16.1l2.3 2.3M5.6 18.4l2.3-2.3M16.1 7.9l2.3-2.3"/></svg>',
     priority: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.8"/><path d="m8.5 10.5 3.5 3.5 3.5-3.5"/></svg>',
     task: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.5 3H19a2 2 0 0 1 2 2v10.5h-2.2V5.2H8.5z"/><rect x="3" y="8" width="13" height="13" rx="2"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h16"/><path d="M9 6.5V4.5h6v2"/><path d="M6.5 6.5l.9 13a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-13"/><path d="M10 11v5.5M14 11v5.5"/></svg>',
     x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
   };
   const FOLDER_ART = '<svg viewBox="0 0 64 52" aria-hidden="true"><path d="M3 8a4 4 0 0 1 4-4h13.5l5 5H57a4 4 0 0 1 4 4v32a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z" fill="#B39892"/><rect x="8" y="11" width="47" height="30" rx="2" fill="#F6F2EF"/><rect x="11" y="14" width="44" height="28" rx="2" fill="#EDE5E1"/><path d="M3 19.5a3 3 0 0 1 3-3h52a3 3 0 0 1 3 3.3L58.3 45a4 4 0 0 1-4 3.5H9.7a4 4 0 0 1-4-3.5z" fill="#D5BFBA"/></svg>';
@@ -668,12 +689,15 @@
   const fld = (form, name) => form.elements.namedItem(name);
 
   let toastTimer;
-  function toast(msg) {
+  function toast(msg, action) {
     const t = $("#toast");
     t.textContent = msg;
+    if (action) {
+      t.append(h("button", { type: "button", onclick: () => { action.run(); t.classList.remove("show"); } }, action.label));
+    }
     t.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+    toastTimer = setTimeout(() => t.classList.remove("show"), action ? 5000 : 2600);
   }
 
   // ---------- LocalStorage ----------
@@ -756,13 +780,61 @@
     t.status = done ? "已完成" : (t.status === "已完成" ? "未開始" : t.status);
     t.doneAt = done ? Date.now() : null;
   }
+  function refreshAfterChange() {
+    renderAll();
+    if (projectDialog.open) renderProjectTasks();
+  }
+
   function toggleTask(id) {
     const t = taskById(id);
     if (!t) return;
-    setTaskDone(t, t.status !== "已完成");
+    const prev = { status: t.status, doneAt: t.doneAt };
+    const nowDone = t.status !== "已完成";
+    setTaskDone(t, nowDone);
     save();
-    renderAll();
-    if (projectDialog.open) renderProjectTasks();
+
+    const li = nowDone && !t.due && document.querySelector(`#inboxList li[data-id="${t.id}"]`);
+    if (li) {
+      // 先劃掉、淡出，再從暫存區移除
+      li.classList.add("done");
+      setTimeout(() => li.classList.add("leaving"), 450);
+      renderProjects();
+      renderRecent();
+      if (projectDialog.open) renderProjectTasks();
+      setTimeout(renderInbox, 750);
+    } else {
+      refreshAfterChange();
+    }
+
+    if (nowDone) {
+      toast(li ? `已完成「${t.title}」，已移出暫存區` : `已完成「${t.title}」`, {
+        label: "復原",
+        run: () => {
+          const x = taskById(id);
+          if (!x) return;
+          x.status = prev.status;
+          x.doneAt = prev.doneAt;
+          save();
+          refreshAfterChange();
+        }
+      });
+    }
+  }
+
+  function deleteTask(id) {
+    const idx = state.tasks.findIndex((t) => t.id === id);
+    if (idx < 0) return;
+    const [removed] = state.tasks.splice(idx, 1);
+    save();
+    refreshAfterChange();
+    toast(`已刪除「${removed.title}」`, {
+      label: "復原",
+      run: () => {
+        state.tasks.splice(Math.min(idx, state.tasks.length), 0, removed);
+        save();
+        refreshAfterChange();
+      }
+    });
   }
   function addTask(data) {
     const t = Object.assign({ id: uid(), status: "未開始", due: "", projectId: "", priority: "", createdAt: Date.now(), doneAt: null }, data);
@@ -784,10 +856,18 @@
     return h("span", { class: `pill ${cls}` }, p);
   }
   function taskBox(t) {
+    const done = t.status === "已完成";
     return h("input", {
-      type: "checkbox", class: "box", checked: t.status === "已完成",
-      "aria-label": `完成「${t.title}」`, onchange: () => toggleTask(t.id)
+      type: "checkbox", class: "box", checked: done,
+      title: done ? "標記為未完成" : "標記為已完成",
+      "aria-label": `${done ? "取消完成" : "完成"}「${t.title}」`, onchange: () => toggleTask(t.id)
     });
+  }
+  function delBtn(t) {
+    return h("button", {
+      type: "button", class: "icon-btn row-del", title: "刪除",
+      "aria-label": `刪除「${t.title}」`, onclick: () => deleteTask(t.id)
+    }, icon("trash"));
   }
 
   function renderTitle() {
@@ -801,10 +881,11 @@
     list.textContent = "";
     const items = state.tasks.filter((t) => !t.due && t.status !== "已完成");
     for (const t of items) {
-      list.append(h("li", {},
+      list.append(h("li", { "data-id": t.id },
         taskBox(t),
         icon("task", "task"),
-        h("button", { type: "button", class: "link-btn", onclick: () => openTask(t.id) }, t.title)
+        h("button", { type: "button", class: "link-btn", onclick: () => openTask(t.id) }, t.title),
+        delBtn(t)
       ));
     }
     $("#inboxEmpty").hidden = items.length > 0;
@@ -871,9 +952,12 @@
       today: (t) => t.due === T,
       week: (t) => t.due > T && t.due <= d7,
       month: (t) => t.due > T && t.due <= d30,
-      overdue: (t) => t.due && t.due < T && t.status !== "已完成"
+      overdue: (t) => t.due && t.due < T && t.status !== "已完成",
+      done: (t) => t.status === "已完成"
     }[tab];
-    return state.tasks.filter((t) => t.due && f(t)).sort((a, b) =>
+    const list = state.tasks.filter(f);
+    if (tab === "done") return list.sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+    return list.sort((a, b) =>
       (a.status === "已完成") - (b.status === "已完成") ||
       a.due.localeCompare(b.due) ||
       PRIORITY_RANK[a.priority || ""] - PRIORITY_RANK[b.priority || ""]
@@ -886,23 +970,24 @@
     const rows = recentTasks(recentTab);
     for (const t of rows) {
       const p = projectById(t.projectId);
-      const late = t.due < T && t.status !== "已完成";
+      const late = t.due && t.due < T && t.status !== "已完成";
       body.append(h("tr", { class: t.status === "已完成" ? "done" : "" },
         h("td", {}, h("div", { class: "name-cell" },
           taskBox(t),
           h("button", { type: "button", class: "link-btn", onclick: () => openTask(t.id) }, t.title)
         )),
         h("td", {}, statusPill(t.status)),
-        h("td", { class: "due" + (late ? " late" : "") }, fmt(t.due)),
+        h("td", { class: "due" + (late ? " late" : "") }, t.due ? fmt(t.due) : h("span", { class: "faint" }, "—")),
         h("td", {}, p
           ? h("button", { type: "button", class: "proj-link", onclick: () => openProject(p.id) }, icon("folder"), h("span", {}, p.name))
           : h("span", { class: "faint" }, "—")),
-        h("td", {}, priorityPill(t.priority))
+        h("td", {}, priorityPill(t.priority)),
+        h("td", { class: "act" }, delBtn(t))
       ));
     }
     if (!rows.length) {
-      const msg = { today: "今天沒有到期的任務。", week: "未來 7 天沒有排定的任務。", month: "未來 30 天沒有排定的任務。", overdue: "沒有逾期的任務。" }[recentTab];
-      body.append(h("tr", { class: "empty-row" }, h("td", { colspan: "5" }, msg)));
+      const msg = { today: "今天沒有到期的任務。", week: "未來 7 天沒有排定的任務。", month: "未來 30 天沒有排定的任務。", overdue: "沒有逾期的任務。", done: "還沒有完成的任務。勾選任務前的方框就會出現在這裡。" }[recentTab];
+      body.append(h("tr", { class: "empty-row" }, h("td", { colspan: "6" }, msg)));
     }
     const overdue = recentTasks("overdue").length;
     const c = $("#overdueCount");
@@ -983,14 +1068,10 @@
     taskDialog.close();
   });
 
-  $("#taskDelete").addEventListener("click", (e) => {
-    const btn = e.currentTarget;
-    if (!btn.dataset.armed) return arm(btn, "再按一次確認刪除");
-    state.tasks = state.tasks.filter((t) => t.id !== editingTaskId);
-    save();
-    renderAll();
+  $("#taskDelete").addEventListener("click", () => {
+    const id = editingTaskId;
     taskDialog.close();
-    toast("已刪除任務");
+    deleteTask(id);
   });
 
   taskDialog.addEventListener("close", () => {
@@ -1041,7 +1122,8 @@
           type: "button", class: "link-btn",
           onclick: () => { returnToProject = editingProjectId; projectDialog.close(); openTask(t.id); }
         }, t.title),
-        h("span", { class: "when" }, t.due ? fmt(t.due).slice(5) : "未排程")
+        h("span", { class: "when" }, t.due ? fmt(t.due).slice(5) : "未排程"),
+        delBtn(t)
       ));
     }
     if (!ts.length) ul.append(h("li", { class: "mini-empty" }, "這個專案還沒有任務。"));
@@ -1151,7 +1233,7 @@
 
   $("#scTask").addEventListener("click", () => openTask(null, { due: today() }));
   $("#recentAdd").addEventListener("click", () => {
-    const preset = { today: today(), week: addDays(1), month: addDays(1), overdue: today() }[recentTab];
+    const preset = { today: today(), week: addDays(1), month: addDays(1), overdue: today(), done: today() }[recentTab];
     openTask(null, { due: preset });
   });
   $("#scProject").addEventListener("click", () => openProject(null));
